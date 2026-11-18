@@ -1,0 +1,38 @@
+_defaults=/etc/default/prisma-access-browser
+_pab=/opt/paloaltonetworks/pab
+
+# Device Trust key management, opt-in like in the official package:
+# enabled by "install_device_trust_key_management_command=true" in $_defaults.
+_device_trust_setup() {
+	grep -qs 'install_device_trust_key_management_command=true' "$_defaults" || return 0
+	getent group chromemgmt >/dev/null || groupadd -r chromemgmt
+	chgrp chromemgmt "$_pab/chrome-management-service"
+	chmod 2755 "$_pab/chrome-management-service"
+	install -dm755 /etc/pab/policies/enrollment
+	local key=/etc/pab/policies/enrollment/DeviceTrustSigningKey
+	[ -e "$key" ] || : >"$key"
+	chgrp chromemgmt "$key"
+	chmod 664 "$key"
+}
+
+post_install() {
+	_device_trust_setup
+	cat <<'MSG'
+==> Prisma Access Browser does not update itself on Linux; updates come with this package.
+==> If your organisation enforces browser process protection, the browser refuses to start
+==> until the protection service runs. It needs BPF LSM ("bpf" in /sys/kernel/security/lsm),
+==> python-bcc and the headers for your running kernel. Then:
+==>   systemctl enable --now pab-protection.service
+MSG
+}
+
+post_upgrade() {
+	_device_trust_setup
+	if systemctl is-active --quiet pab-protection.service 2>/dev/null; then
+		systemctl try-restart pab-protection.service
+	fi
+}
+
+pre_remove() {
+	systemctl disable --now pab-protection.service 2>/dev/null || true
+}

@@ -25,13 +25,18 @@ optdepends=(
 	'kdialog: for file dialogs in KDE'
 	'gnome-keyring: for storing passwords in GNOME keyring'
 	'kwallet: for storing passwords in KWallet'
+	'python-bcc: process protection service (pab-protection.service)'
+	'linux-headers: kernel headers for the protection service (match your kernel)'
 )
 provides=("$_pkgname")
 conflicts=("$_pkgname")
 options=('!emptydirs' '!strip')
+install=$pkgname.install
 _channel=stable
-source=("https://updates.talon-sec.com/linux/${_pkgname}/deb/pool/stable/main/${_pkgname}-${_channel}_${pkgver}-1_amd64.deb")
-sha256sums=('be650081e0bbcedf57dcdf9d64c0a8c6b99baeb210ba85ed78a158f31f67140c')
+source=('pab-protection.service')
+source_x86_64=("https://updates.talon-sec.com/linux/${_pkgname}/deb/pool/stable/main/${_pkgname}-${_channel}_${pkgver}-1_amd64.deb")
+sha256sums=('21c63288fcdda7699663e47b8ddd323f366c9c1bd736656f33f0fcff0a60f9d8')
+sha256sums_x86_64=('be650081e0bbcedf57dcdf9d64c0a8c6b99baeb210ba85ed78a158f31f67140c')
 
 package() {
 	bsdtar -xf data.tar.xz -C "$pkgdir/"
@@ -47,4 +52,10 @@ package() {
 		"$pkgdir/etc/cron.daily/" \
 		"$pkgdir/opt/paloaltonetworks/pab/cron/" \
 		"$pkgdir/opt/paloaltonetworks/pab/product_logo_"*.png
+
+	# Protection service, disabled by default. The official postinst restricts its files to root.
+	install -Dm644 "$srcdir/pab-protection.service" "$pkgdir/usr/lib/systemd/system/pab-protection.service"
+	chmod 500 \
+		"$pkgdir/opt/paloaltonetworks/pab/linux_protector"*.py \
+		"$pkgdir/opt/paloaltonetworks/pab/protector_filter"*.c
 }

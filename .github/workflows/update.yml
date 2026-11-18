@@ -21,6 +21,7 @@ jobs:
     container: archlinux:base-devel
     env:
       AUR_PACKAGE: prisma-access-browser-bin
+      AUR_FILES: PKGBUILD .SRCINFO prisma-access-browser-bin.install pab-protection.service
       GIT_NAME: Azamat Almazbek uulu
       GIT_EMAIL: 60985938+vsem-azamat@users.noreply.github.com
     steps:
@@ -75,11 +76,11 @@ jobs:
           echo 'aur.archlinux.org ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEuBKrPzbawxA/k2g6NcyV5jmqwJ2s+zpgZGZ7tpLIcN' >~/.ssh/known_hosts
           export GIT_SSH_COMMAND="ssh -i ~/.ssh/aur -o IdentitiesOnly=yes"
           git clone "ssh://aur@aur.archlinux.org/${AUR_PACKAGE}.git" /tmp/aur
-          cp PKGBUILD .SRCINFO /tmp/aur/
+          cp $AUR_FILES /tmp/aur/
           cd /tmp/aur
           git config user.name "$GIT_NAME"
           git config user.email "$GIT_EMAIL"
-          git add PKGBUILD .SRCINFO
+          git add $AUR_FILES
           if git diff --cached --quiet; then
             echo "AUR is already up to date."
             exit 0

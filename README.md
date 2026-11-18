@@ -28,6 +28,31 @@ makepkg -si
 
 The browser does not update itself on Linux; new versions arrive through package updates.
 
+## Differences from the official .deb
+
+The `.deb` runs a post-install script that this package does not run as is. What it does and how it is
+handled here:
+
+| `.deb` post-install step | This package |
+|---|---|
+| Adds a daily cron job and an apt repository for updates | Dropped; pacman handles updates |
+| Installs and **starts** `pab-protection.service`, an eBPF service that blocks `ptrace` on the browser's processes | Ships the same unit as `/usr/lib/systemd/system/pab-protection.service`, **disabled** |
+| Edits the GRUB command line to enable BPF LSM | Not done; the bootloader is left alone |
+| Sets up Device Trust key management when `/etc/default/prisma-access-browser` contains `install_device_trust_key_management_command=true` | Same, from the pacman install script |
+| Loads an AppArmor profile on Ubuntu | Not done |
+
+### Protection service
+
+If your organisation enforces browser process protection, the browser refuses to start until the service
+runs. To enable it:
+
+1. Make sure BPF LSM is active: `bpf` must appear in `/sys/kernel/security/lsm`. Stock Arch kernels enable it;
+   otherwise add `bpf` to the `lsm=` kernel parameter.
+2. Install `python-bcc` and the headers for your kernel (`linux-headers`, `linux-lts-headers`, ...).
+3. `sudo systemctl enable --now pab-protection.service`
+
+`journalctl -u pab-protection.service` should show `BPF LSM detected: LSM hooks attached automatically`.
+
 ## Automatic updates
 
 Palo Alto publishes a new stable build about once a week. A daily GitHub Actions job:

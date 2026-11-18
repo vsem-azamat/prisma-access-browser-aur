@@ -37,7 +37,7 @@ fi
 sed -i \
 	-e "s/^pkgver=.*/pkgver=$upstream_ver/" \
 	-e "s/^pkgrel=.*/pkgrel=1/" \
-	-e "s/^sha256sums=.*/sha256sums=('$sha256')/" \
+	-e "s/^sha256sums_x86_64=.*/sha256sums_x86_64=('$sha256')/" \
 	PKGBUILD
 makepkg --printsrcinfo >.SRCINFO
 

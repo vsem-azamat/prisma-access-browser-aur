@@ -1,0 +1,26 @@
+# Mirrors the unit that the official .deb writes from its postinst script.
+# Disabled by default; see the post-install message for when to enable it.
+[Unit]
+Description=Prisma Access Browser Protection Service
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /opt/paloaltonetworks/pab/linux_protector.py
+Restart=always
+RestartSec=10
+
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+RuntimeDirectory=pab
+LogsDirectory=pab
+LogsDirectoryMode=0700
+
+Environment=PYTHONUNBUFFERED=1
+Environment=BPF_CLANG_PATH=/usr/bin/clang
+
+[Install]
+WantedBy=multi-user.target
