@@ -1,0 +1,27 @@
+pkgbase = prisma-access-browser-bin
+	pkgdesc = Prisma Access Browser - the secure enterprise browser by Palo Alto Networks
+	pkgver = 157.19.6.79
+	pkgrel = 1
+	url = https://docs.paloaltonetworks.com/prisma-access-browser
+	arch = x86_64
+	license = custom
+	depends = alsa-lib
+	depends = gtk3
+	depends = libcups
+	depends = libxss
+	depends = libxtst
+	depends = nss
+	depends = ttf-liberation
+	depends = xdg-utils
+	optdepends = pipewire: WebRTC desktop sharing under Wayland
+	optdepends = kdialog: for file dialogs in KDE
+	optdepends = gnome-keyring: for storing passwords in GNOME keyring
+	optdepends = kwallet: for storing passwords in KWallet
+	provides = prisma-access-browser
+	conflicts = prisma-access-browser
+	options = !emptydirs
+	options = !strip
+	source = https://updates.talon-sec.com/linux/prisma-access-browser/deb/pool/stable/main/prisma-access-browser-stable_157.19.6.79-1_amd64.deb
+	sha256sums = be650081e0bbcedf57dcdf9d64c0a8c6b99baeb210ba85ed78a158f31f67140c
+
+pkgname = prisma-access-browser-bin

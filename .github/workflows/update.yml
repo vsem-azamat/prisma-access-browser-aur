@@ -1,0 +1,88 @@
+name: update
+
+on:
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: [PKGBUILD, update.sh, .github/workflows/update.yml]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    container: archlinux:base-devel
+    env:
+      AUR_PACKAGE: prisma-access-browser-bin
+      GIT_NAME: Azamat Almazbek uulu
+      GIT_EMAIL: 60985938+vsem-azamat@users.noreply.github.com
+    steps:
+      - name: Install tools
+        run: |
+          pacman -Syu --noconfirm --needed git openssh namcap pacman-contrib
+          useradd -m builder
+          echo 'builder ALL=(ALL) NOPASSWD: ALL' >/etc/sudoers.d/builder
+
+      - uses: actions/checkout@v4
+
+      - name: Check upstream
+        id: check
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          chown -R builder: "$GITHUB_WORKSPACE"
+          result=$(sudo -u builder ./update.sh)
+          echo "$result"
+          echo "version=${result#*=}" >>"$GITHUB_OUTPUT"
+          if [[ "$result" == updated=* ]]; then echo "changed=true" >>"$GITHUB_OUTPUT"; fi
+
+      - name: Build and lint
+        run: |
+          namcap PKGBUILD || true
+          sudo -u builder makepkg --syncdeps --noconfirm --cleanbuild
+          namcap ./*.pkg.tar.zst || true
+          # .SRCINFO must match PKGBUILD, or the AUR rejects the push.
+          sudo -u builder makepkg --printsrcinfo | diff -u .SRCINFO -
+
+      - name: Commit bump
+        if: steps.check.outputs.changed == 'true'
+        run: |
+          git config user.name "$GIT_NAME"
+          git config user.email "$GIT_EMAIL"
+          git add PKGBUILD .SRCINFO
+          git commit -m "Update to ${{ steps.check.outputs.version }}"
+          git push
+
+      - name: Publish to AUR
+        if: github.ref == 'refs/heads/main'
+        env:
+          AUR_SSH_KEY: ${{ secrets.AUR_SSH_KEY }}
+        run: |
+          if [[ -z "$AUR_SSH_KEY" ]]; then
+            echo "AUR_SSH_KEY is not set; skipping AUR publish."
+            exit 0
+          fi
+          install -dm700 ~/.ssh
+          printf '%s\n' "$AUR_SSH_KEY" >~/.ssh/aur
+          chmod 600 ~/.ssh/aur
+          # Pinned host key, fingerprint SHA256:RFzBCUItH9LZS0cKB5UE6ceAYhBD5C8GeOBip8Z11+4 (published on aur.archlinux.org).
+          echo 'aur.archlinux.org ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEuBKrPzbawxA/k2g6NcyV5jmqwJ2s+zpgZGZ7tpLIcN' >~/.ssh/known_hosts
+          export GIT_SSH_COMMAND="ssh -i ~/.ssh/aur -o IdentitiesOnly=yes"
+          git clone "ssh://aur@aur.archlinux.org/${AUR_PACKAGE}.git" /tmp/aur
+          cp PKGBUILD .SRCINFO /tmp/aur/
+          cd /tmp/aur
+          git config user.name "$GIT_NAME"
+          git config user.email "$GIT_EMAIL"
+          git add PKGBUILD .SRCINFO
+          if git diff --cached --quiet; then
+            echo "AUR is already up to date."
+            exit 0
+          fi
+          git commit -m "Update to $(sed -n 's/^pkgver=//p' PKGBUILD)"
+          git push origin HEAD:master

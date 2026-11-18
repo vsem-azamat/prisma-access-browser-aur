@@ -1,0 +1,50 @@
+# Maintainer: mnabila <nblid48 at gmail com>
+
+# Version bumps are automated: https://github.com/vsem-azamat/prisma-access-browser-aur
+
+pkgname=prisma-access-browser-bin
+_pkgname=prisma-access-browser
+pkgver=157.19.6.79
+pkgrel=1
+pkgdesc="Prisma Access Browser - the secure enterprise browser by Palo Alto Networks"
+arch=('x86_64')
+url="https://docs.paloaltonetworks.com/prisma-access-browser"
+license=('custom')
+depends=(
+	'alsa-lib'
+	'gtk3'
+	'libcups'
+	'libxss'
+	'libxtst'
+	'nss'
+	'ttf-liberation'
+	'xdg-utils'
+)
+optdepends=(
+	'pipewire: WebRTC desktop sharing under Wayland'
+	'kdialog: for file dialogs in KDE'
+	'gnome-keyring: for storing passwords in GNOME keyring'
+	'kwallet: for storing passwords in KWallet'
+)
+provides=("$_pkgname")
+conflicts=("$_pkgname")
+options=('!emptydirs' '!strip')
+_channel=stable
+source=("https://updates.talon-sec.com/linux/${_pkgname}/deb/pool/stable/main/${_pkgname}-${_channel}_${pkgver}-1_amd64.deb")
+sha256sums=('be650081e0bbcedf57dcdf9d64c0a8c6b99baeb210ba85ed78a158f31f67140c')
+
+package() {
+	bsdtar -xf data.tar.xz -C "$pkgdir/"
+
+	# Icons
+	for i in 16 24 32 48 64 128 256; do
+		install -Dm644 "$pkgdir/opt/paloaltonetworks/pab/product_logo_${i}.png" \
+			"$pkgdir/usr/share/icons/hicolor/${i}x${i}/apps/${_pkgname}.png"
+	done
+
+	# Remove the Debian cron job and duplicate product logos
+	rm -r \
+		"$pkgdir/etc/cron.daily/" \
+		"$pkgdir/opt/paloaltonetworks/pab/cron/" \
+		"$pkgdir/opt/paloaltonetworks/pab/product_logo_"*.png
+}
